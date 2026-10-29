@@ -1,5 +1,4 @@
 import http from 'http';
-import url from 'url';
 import fs from 'fs';
 import path from 'path';
 import proxyHandler from './proxy';
@@ -71,11 +70,11 @@ const server = http.createServer(async (req: any, res: any) => {
   };
 
   // Parse query parameters
-  const parsedUrl = url.parse(req.url || '', true);
-  req.query = parsedUrl.query;
+  const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  req.query = Object.fromEntries(requestUrl.searchParams.entries());
 
   // Route routing
-  const pathname = parsedUrl.pathname || '';
+  const pathname = requestUrl.pathname;
 
   async function executeHandler(handler: any) {
     if (req.method === 'POST') {
