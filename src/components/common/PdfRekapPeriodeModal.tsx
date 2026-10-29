@@ -21,6 +21,7 @@ import { parseTglID } from '../../utils/helpers';
 import { apiPost } from '../../services/api';
 import { prepareHtmlWithEmbeddedFotos } from '../../utils/foto-embed';
 import { CustomDropdown } from './CustomDropdown';
+import { useApp } from '../../App';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 const BNAME = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -84,6 +85,7 @@ const FCTL =
 
 // ── Komponen ─────────────────────────────────────────────────────────────────
 export const PdfRekapPeriodeModal: React.FC<Props> = ({ show, onClose, allData, settings, kategori }) => {
+  const { triggerToast } = useApp();
   const isDamkar = !kategori || kategori === 'damkar';
 
   // ── State: Mode & Periode ─────────────────────────────────────────────────
@@ -210,7 +212,7 @@ export const PdfRekapPeriodeModal: React.FC<Props> = ({ show, onClose, allData, 
     const blob = new Blob([printHtml], { type: 'text/html; charset=utf-8' });
     const url  = URL.createObjectURL(blob);
     const win  = window.open(url, '_blank');
-    if (!win) alert('Pop-up diblokir browser. Izinkan pop-up lalu coba lagi.');
+    if (!win) triggerToast('Pop-up diblokir browser. Izinkan pop-up lalu coba lagi.', 'er');
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
