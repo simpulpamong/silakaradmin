@@ -120,11 +120,10 @@ function clearLoginRateLimit(clientKey: string): void {
 // Endpoint publik yang tidak memerlukan API key (read-only / non-destructive)
 const PUBLIC_ACTIONS = new Set([
   'ping', 'login',
-  'saveSettings',
-  'getDashboard', 'getRekap',
-  'getDetailFotoMarkers', 'getLayerPeta', 'getGambarPeta',
-  'getNoWa', 'getSettings', 'getSampah', 'getAllUsers',
-  'fetchFotoBase64', 'generateLaporanHtml', 'generateKolektifHtml', 'generateRekapPeriodeHtml',
+  // Hanya health check dan login boleh diakses tanpa autentikasi.
+  // Semua data operasional, konfigurasi, foto, dan laporan wajib terlindungi.
+  // Semua data operasional dan generator laporan wajib terlindungi.
+
 ]);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<any> {

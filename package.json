@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "check": "npm run typecheck && npm run lint && npm run build",
     "start": "next start",
     "preview": "next start",
     "seed:aduan": "node --experimental-strip-types scripts/seed-aduan.mts",

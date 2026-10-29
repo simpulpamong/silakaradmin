@@ -41,7 +41,7 @@ export async function getSettings(): Promise<any> {
   try {
     const docRef = doc(db, 'settings', SETTINGS_DOC_ID);
     const snap = await getDoc(docRef);
-    if (snap.exists) {
+    if (snap.exists()) {
       return success(snap.data());
     }
     return success({});
@@ -52,13 +52,21 @@ export async function getSettings(): Promise<any> {
 
 export async function saveSettings(payload: any): Promise<any> {
   if (!process.env.FIREBASE_PROJECT_ID) return error('Firebase belum dikonfigurasi.');
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return error('Pengaturan tidak valid.');
+  }
+  const allowedKeys = new Set(['whatsappGroupUrl']);
+  const cleanPayload = Object.fromEntries(
+    Object.entries(payload).filter(([key, value]) => allowedKeys.has(key) && typeof value === 'string' && value.length <= 2048),
+  );
+  if (Object.keys(cleanPayload).length === 0) return error('Pengaturan tidak valid.');
   try {
     const docRef = doc(db, 'settings', SETTINGS_DOC_ID);
     const snap = await getDoc(docRef);
-    if (snap.exists) {
-      await updateDoc(docRef, payload);
+    if (snap.exists()) {
+      await updateDoc(docRef, cleanPayload);
     } else {
-      await setDoc(docRef, payload);
+      await setDoc(docRef, cleanPayload);
     }
     return success(null, 'Pengaturan disimpan.');
   } catch (e: any) {
@@ -929,7 +937,7 @@ export async function deletePermanentLaporan(ri: string, _sumber: string, fotos:
         if (url && (url.includes('cloudinary.com') || url.includes('res.cloudinary'))) {
           try {
             // Import dinamis untuk menghindari circular dependency
-            const { deleteCloudinary } = await import('../proxy.ts');
+            const { deleteCloudinary } = await import('../proxy');
             await deleteCloudinary(url);
           } catch (e) {
             console.error('[DeletePermanent] Error hapus foto Cloudinary:', e);
@@ -940,7 +948,7 @@ export async function deletePermanentLaporan(ri: string, _sumber: string, fotos:
 
     // Hapus dari spreadsheet hanya setelah item dipilih untuk dihapus permanen.
     if (_sumber !== 'mobile') {
-      const { deleteLaporan, deleteLaporanBySnapshot } = await import('./sheets-service.ts');
+      const { deleteLaporan, deleteLaporanBySnapshot } = await import('./sheets-service');
       const riInt = parseInt(ri, 10);
       if ((!originalData || !originalData.ts) && (isNaN(riInt) || riInt < 2)) return error('Row index spreadsheet tidak valid.');
       const result = originalData?.ts
