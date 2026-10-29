@@ -3,6 +3,41 @@
    Like SIMADUN style
    ══════════════════════════════════════════ */
 
+/* Sidebar tetap navy pada light mode agar kontras dan konsisten dengan identitas SILAKAR. */
+body:not(.dark-mode) .sb {
+  background: linear-gradient(180deg, #152238 0%, #0b111e 100%);
+  border-right-color: rgba(255,255,255,.12);
+  color: #fff;
+  box-shadow: inset -1px 0 0 rgba(255,255,255,.04), 4px 0 24px rgba(15,23,42,.14);
+}
+body:not(.dark-mode) .sb-header {
+  background: rgba(7,16,31,.38);
+  border-bottom-color: rgba(255,255,255,.12);
+}
+body:not(.dark-mode) .sb-nav-btn { color: rgba(255,255,255,.76); }
+body:not(.dark-mode) .sb-nav-btn:hover {
+  background: rgba(255,255,255,.10);
+  color: #fff;
+}
+body:not(.dark-mode) .sb-nav-btn.active {
+  background: rgba(255,255,255,.18);
+  color: #FFD23F;
+  box-shadow: inset 3px 0 0 #FFD23F;
+}
+body:not(.dark-mode) .sb-nav-btn.active .sb-nav-icon { color: #FFD23F; }
+body:not(.dark-mode) .sb-section-label { color: rgba(255,255,255,.46); }
+body:not(.dark-mode) .sb-footer { border-top-color: rgba(255,255,255,.12); }
+body:not(.dark-mode) .sb-logout {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.72);
+}
+body:not(.dark-mode) .sb-logout:hover {
+  background: rgba(239,108,74,.22);
+  border-color: rgba(239,108,74,.4);
+  color: #fff;
+}
+
 /* Dark mode pre-apply (no flash on load) */
 html.dark-pre body { background: #0f1117 !important; }
 
