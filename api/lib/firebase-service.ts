@@ -929,7 +929,7 @@ export async function deletePermanentLaporan(ri: string, _sumber: string, fotos:
         if (url && (url.includes('cloudinary.com') || url.includes('res.cloudinary'))) {
           try {
             // Import dinamis untuk menghindari circular dependency
-            const { deleteCloudinary } = await import('../proxy');
+            const { deleteCloudinary } = await import('../proxy.ts');
             await deleteCloudinary(url);
           } catch (e) {
             console.error('[DeletePermanent] Error hapus foto Cloudinary:', e);
@@ -940,7 +940,7 @@ export async function deletePermanentLaporan(ri: string, _sumber: string, fotos:
 
     // Hapus dari spreadsheet hanya setelah item dipilih untuk dihapus permanen.
     if (_sumber !== 'mobile') {
-      const { deleteLaporan, deleteLaporanBySnapshot } = await import('./sheets-service');
+      const { deleteLaporan, deleteLaporanBySnapshot } = await import('./sheets-service.ts');
       const riInt = parseInt(ri, 10);
       if ((!originalData || !originalData.ts) && (isNaN(riInt) || riInt < 2)) return error('Row index spreadsheet tidak valid.');
       const result = originalData?.ts
