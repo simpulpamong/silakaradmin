@@ -693,7 +693,7 @@ export const PetaDamkar: React.FC = () => {
     dfGroup.clearLayers();
     if (showPhotos) {
       photosList.forEach((pt) => {
-        if (!pt.lat || !pt.lng) return;
+        if (!Number.isFinite(pt.lat) || !Number.isFinite(pt.lng)) return;
         const kat = normalizeKategori(pt.kategori);
 
         // Filter per Kategori
@@ -701,7 +701,7 @@ export const PetaDamkar: React.FC = () => {
 
         // Filter per Jalan khusus damkar
         const kelompok = _resolveKelompok(pt);
-        if (streetFilter && kat === 'damkar' && kelompok !== streetFilter) return;
+        if (streetFilter && kat === 'kebakaran' && kelompok !== streetFilter) return;
 
         const katConf = KATEGORI_CONFIG[kat] || KATEGORI_CONFIG.damkar;
         const c = katConf.warna;

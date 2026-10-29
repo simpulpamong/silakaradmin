@@ -1137,9 +1137,14 @@ export function generateKolektifHtml(payload: any): any {
 
 export async function getDetailFotoMarkers(fbRows?: any[]): Promise<any> {
   try {
-    const values = await getSheetValues(photoSheet()).catch(() => []);
     const data: any[] = [];
-    if (values.length >= 2) {
+    const photoSheets: Array<{ name: typeof SHEET_INPUT_FOTO_CANONICAL[number]; kategori: 'kebakaran' | 'odnk' }> = [
+      { name: 'DOKUMENTASI KEBAKARAN', kategori: 'kebakaran' },
+      { name: 'DOKUMENTASI ODNK', kategori: 'odnk' },
+    ];
+    for (const source of photoSheets) {
+      const values = await getSheetValues(source.name).catch(() => []);
+      if (values.length < 2) continue;
       values.slice(1).forEach((r, i) => {
         const adaGps = String(r[CDF.ADA_GPS] || '').toUpperCase();
         if (adaGps === 'TIDAK' || adaGps === 'FALSE' || adaGps === 'NO') return;
@@ -1148,10 +1153,11 @@ export async function getDetailFotoMarkers(fbRows?: any[]): Promise<any> {
         const lat = parseFloat(latStr);
         const lng = parseFloat(lngStr);
         if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
+        if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180 || (lat === 0 && lng === 0)) return;
         const linkDrive = String(r[CDF.LINK_DRIVE] || '').trim();
         data.push({
-          _ri: i + 2,
-          kategori: 'damkar',
+          _ri: `${source.kategori}_${i + 2}`,
+          kategori: source.kategori,
           tsUpload: String(r[CDF.TS_UPLOAD] || '').trim(),
           tanggalFoto: String(r[CDF.TANGGAL] || '').trim(),
           danru: String(r[CDF.DANRU] || '').trim(),
