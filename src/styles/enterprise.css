@@ -1,0 +1,81 @@
+/* Enterprise visual system: calm surfaces, clear hierarchy, restrained interaction. */
+:root {
+  --bg: #f6f8fb;
+  --card: #ffffff;
+  --text: #172033;
+  --mid: #526078;
+  --muted: #7b879c;
+  --border: #e5eaf1;
+  --bdark: #cbd5e1;
+  --blue: #2563eb;
+  --blue2: #3b82f6;
+  --blueh: #1d4ed8;
+  --bluelo: #eff6ff;
+  --r: 10px;
+  --sh0: 0 1px 2px rgba(15, 23, 42, .04);
+  --sh: 0 8px 24px rgba(15, 23, 42, .07);
+  --shl: 0 20px 55px rgba(15, 23, 42, .16);
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font);
+}
+body { font-size: 14px; line-height: 1.5; }
+body, button, input, textarea, select { letter-spacing: 0; }
+h1,h2,h3,h4,h5,h6 { letter-spacing: -.02em; }
+
+/* Keep layout surfaces flat and consistent. */
+.panel, .scard, .ag-card, .set-card, .mcard-item, .topb {
+  border: 1px solid var(--border);
+  box-shadow: var(--sh0);
+  background: var(--card);
+}
+.panel:hover, .scard:hover, .ag-card:hover, .set-card:hover { box-shadow: var(--sh); transform: none; }
+.phd, .fbar { background: #fbfcfe; border-color: var(--border); }
+
+/* Controls: one predictable height, quiet focus ring. */
+.fctl, input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+  min-height: 40px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--card); padding-inline: 11px; color: var(--text); box-shadow: none;
+}
+textarea { padding-block: 9px; }
+.fctl:hover, input:not([type="checkbox"]):not([type="radio"]):hover, select:hover, textarea:hover { border-color: var(--bdark); }
+.fctl:focus, input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus {
+  border-color: var(--blue2); box-shadow: 0 0 0 3px rgba(37,99,235,.12); outline: 0;
+}
+
+.bp, .bg2 { min-height: 38px; border-radius: 7px; padding: 8px 13px; font-size: .75rem; font-weight: 700; box-shadow: none; transform: none; }
+.bp { background: var(--blue); }
+.bp:hover { background: var(--blueh); box-shadow: 0 3px 8px rgba(37,99,235,.18); transform: none; }
+.bg2 { background: var(--card); border-color: var(--border); color: var(--mid); }
+.bg2:hover { background: #f8fafc; border-color: var(--bdark); transform: none; }
+
+/* Data tables: crisp header, generous rows, no visual noise. */
+.dtbl { border-collapse: separate; border-spacing: 0; width: 100%; }
+.dtbl thead th { background: #f8fafc; color: #64748b; font-size: .68rem; font-weight: 750; letter-spacing: .055em; text-transform: uppercase; border-bottom: 1px solid var(--border); padding: 11px 13px; white-space: nowrap; }
+.dtbl tbody td { padding: 12px 13px; border-bottom: 1px solid #edf0f4; color: var(--text); font-size: .78rem; }
+.dtbl tbody tr:hover td { background: #f8fbff; }
+
+/* Modal and notification hierarchy. */
+.mov { background: rgba(15,23,42,.42); backdrop-filter: blur(5px); }
+.mbox { border-radius: 12px; box-shadow: var(--shl); border-color: var(--border); }
+.mhd, .mft { padding: 15px 20px; }
+.mbd { padding: 20px; }
+.ti { border: 1px solid var(--border); border-left-width: 3px; border-radius: 9px; box-shadow: 0 10px 28px rgba(15,23,42,.12); backdrop-filter: blur(12px); }
+
+/* Skeleton remains visible but intentionally subtle. */
+.skeleton { background: #e9eef5 !important; border-radius: 6px; }
+.skeleton::after { content: none; }
+
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+  .panel, .scard, .ag-card, .set-card { border-radius: 9px; }
+  .dtbl thead th { padding: 10px; }
+  .dtbl tbody td { padding: 11px 10px; }
+  .mbd { padding: 16px; }
+  .mhd, .mft { padding: 13px 16px; }
+  .bp, .bg2 { min-height: 40px; }
+}
+body.dark-mode { --bg:#0f1724; --card:#172131; --text:#e7edf6; --mid:#aab7c9; --muted:#8090a6; --border:#263448; --bdark:#3a4a61; --bluelo:rgba(59,130,246,.14); --sh0:0 1px 2px rgba(0,0,0,.18); }
+body.dark-mode .phd, body.dark-mode .fbar, body.dark-mode .dtbl thead th { background: #141e2d; }
+body.dark-mode .dtbl tbody td { border-color: #223044; }
+body.dark-mode .dtbl tbody tr:hover td { background: rgba(59,130,246,.06); }
+body.dark-mode .skeleton { background: #243247 !important; }

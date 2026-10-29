@@ -1,0 +1,136 @@
+import { useEffect, useRef } from 'react';
+import { useTheme } from '../App';
+
+/**
+ * Jembatan tema untuk frame yang di-embed oleh dashboard.
+ *
+ * Saat dashboard menampilkan aplikasi lain di dalam iframe, frame itu harus
+ * harus memakai tema yang sama. Protokolnya sama dengan yang dipakai portal:
+ *
+ *   parent → child : { type: 'SILAKAR_THEME_CHANGE', theme: 'dark'|'light' }
+ *   child  → parent: { type: 'SILAKAR_VIEWER_READY' } / 'silakar:frame-ready'
+ *   URL param      : ?theme=dark|light
+ *
+ * Parameter URL dipakai agar frame pertama sudah benar sejak awal (tidak ada
+ * kedipan tema), sedangkan postMessage membuat tema ikut berubah saat pengguna
+ * menekan tombol light/dark di dashboard.
+ */
+
+export type FrameThemeMode = 'dark' | 'light';
+
+/** Tambahkan/ubah parameter `theme` pada URL. */
+export function withThemeParam(url: string, theme: FrameThemeMode): string {
+  if (!url) return url;
+  try {
+    const u = new URL(url, window.location.origin);
+    u.searchParams.set('theme', theme);
+    return u.toString();
+  } catch {
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}theme=${encodeURIComponent(theme)}`;
+  }
+}
+
+/**
+ * Tandai URL sebagai "dipasang di dashboard" (`?embed=1`).
+ *
+ * Aplikasi anak memakai sinyal ini untuk mempertahankan tata letak
+ * desktop di dalam iframe yang sempit: tanpa tombol hamburger dan tanpa
+ * blok brand di kiri atas (dashboard sudah punya navigasinya sendiri).
+ */
+export function withEmbedParam(url: string): string {
+  if (!url) return url;
+  try {
+    const u = new URL(url, window.location.origin);
+    u.searchParams.set('embed', '1');
+    return u.toString();
+  } catch {
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}embed=1`;
+  }
+}
+
+/**
+ * Kirim tema ke dalam frame. Panggil ulang saat:
+ *  - komponen mount,
+ *  - tema dashboard berubah,
+ *  - frame melaporkan "saya siap" (SILAKAR_VIEWER_READY / silakar:frame-ready).
+ *
+ * `ref` iframe dipakai; boleh `null` bila frame belum ada.
+ *
+ * `onThemeFromChild` dipakai untuk sinkron dua arah: bila pengguna
+ * mengubah tema di dalam aplikasi anak (mis. tombol tema pada
+ * dashboard), dashboard ikut berubah.
+ */
+export function useFrameThemeSync(
+  frames: Array<React.RefObject<HTMLIFrameElement>>,
+  options?: { onThemeFromChild?: (theme: FrameThemeMode) => void }
+): FrameThemeMode {
+  const { isDarkMode } = useTheme();
+  const theme: FrameThemeMode = isDarkMode ? 'dark' : 'light';
+  const themeRef = useRef<FrameThemeMode>(theme);
+  themeRef.current = theme;
+
+  const onThemeFromChild = options?.onThemeFromChild;
+  const childCallbackRef = useRef(onThemeFromChild);
+  childCallbackRef.current = onThemeFromChild;
+
+  useEffect(() => {
+    const send = () => {
+      const msg = { type: 'SILAKAR_THEME_CHANGE', theme: themeRef.current };
+      for (const ref of frames) {
+        const win = ref.current?.contentWindow;
+        if (!win) continue;
+        try { win.postMessage(msg, '*'); } catch { /* abaikan */ }
+      }
+    };
+
+    // 1. Saat komponen mount / URL frame berubah.
+    send();
+
+    // 2. Saat frame selesai memuat (termasuk setelah reload manual).
+    const cleanups: Array<() => void> = [];
+    for (const ref of frames) {
+      const el = ref.current;
+      if (!el) continue;
+      const onLoad = () => {
+        send();
+        // Beberapa aplikasi baru memasang listener-nya setelah load →
+        // kirim ulang sesaat kemudian.
+        window.setTimeout(send, 400);
+        window.setTimeout(send, 1200);
+      };
+      el.addEventListener('load', onLoad);
+      cleanups.push(() => el.removeEventListener('load', onLoad));
+    }
+
+    // 3. Saat frame memberitahu dirinya siap — atau mengubah tema.
+    const onMessage = (ev: MessageEvent) => {
+      const data = ev?.data as { type?: string; theme?: unknown } | undefined;
+      const type = data?.type;
+      if (type === 'SILAKAR_VIEWER_READY' || type === 'silakar:frame-ready') {
+        send();
+        return;
+      }
+      // Sinkron dua arah: tema baru dari aplikasi anak.
+      if (type === 'SILAKAR_THEME_CHANGE') {
+        const next = data?.theme;
+        if (next === 'dark' || next === 'light') {
+          childCallbackRef.current?.(next);
+        }
+      }
+    };
+    window.addEventListener('message', onMessage);
+    cleanups.push(() => window.removeEventListener('message', onMessage));
+
+    // 4. Pengaman terakhir: kirim ulang berkali-kali saat awal halaman dibuka.
+    const timers = [600, 1500, 3000, 5000].map((ms) => window.setTimeout(send, ms));
+
+    return () => {
+      cleanups.forEach((fn) => fn());
+      timers.forEach(clearTimeout);
+    };
+  }, [theme, frames]);
+
+  return theme;
+}
