@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import bcrypt from 'bcryptjs';
 import { uploadFoto, deleteFile } from './drive-service';
 import { getGoogleAuth, loadEnv } from './google-auth';
+import { REPORT_HEADERS, PHOTO_HEADERS } from './schema-contract';
 
 // ================================================================
 //  CONSTANTS  (sama dengan GAS Code.gs)
@@ -30,19 +31,6 @@ const SHEET_INPUT_CANONICAL = ['KEBAKARAN', 'ODNK'] as const;
 const SHEET_INPUT_FOTO_CANONICAL = ['DOKUMENTASI KEBAKARAN', 'DOKUMENTASI ODNK'] as const;
 const SHEET_LAYER_PETA = 'Layer Peta';
 const SHEET_GAMBAR_PETA = 'Gambar Peta';
-const REPORT_HEADERS = [
-  'Waktu Submit', 'ID Laporan', 'Kategori', 'Tanggal Kejadian', 'Hari', 'Lokasi',
-  'Latitude', 'Longitude', 'Google Maps', 'Pelapor', 'Pemilik / Objek', 'Jumlah Penghuni',
-  'Korban', 'Penyebab', 'Kronologi', 'Tindakan', 'Kerugian', 'Harta Terselamatkan',
-  'Luas Area', 'Jarak Tempuh', 'Estimasi Perjalanan', 'Waktu Laporan', 'Waktu Berangkat',
-  'Waktu Tiba', 'Waktu Mulai', 'Waktu Selesai', 'Waktu Kembali', 'Armada', 'Personel',
-  'Kendala', 'Rincian Kegiatan', 'Narasi Asli', 'Folder Drive', 'Jumlah Foto', 'Status', 'Sumber'
-] as const;
-const PHOTO_HEADERS = [
-  'Waktu Upload', 'ID Laporan', 'Kategori', 'Tanggal', 'Nama File', 'URL Drive', 'File ID',
-  'Folder Drive', 'Latitude', 'Longitude', 'Google Maps', 'Sumber Foto', 'Ada GPS', 'Waktu Foto',
-  'Alamat Foto', 'Keterangan', 'Status'
-] as const;
 function reportSheet(kategori?: string): typeof SHEET_INPUT_CANONICAL[number] {
   return String(kategori || '').toLowerCase() === 'odnk' ? 'ODNK' : 'KEBAKARAN';
 }
