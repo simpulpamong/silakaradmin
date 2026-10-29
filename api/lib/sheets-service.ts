@@ -1135,7 +1135,10 @@ export function generateKolektifHtml(payload: any): any {
 //  6.6  MAPS — Detail Foto Markers
 // ================================================================
 
-export async function getDetailFotoMarkers(fbRows?: any[]): Promise<any> {
+export async function getDetailFotoMarkers(
+  fbRows?: any[],
+  options: { kategori?: string; dateFrom?: string; dateTo?: string; page?: number; pageSize?: number } = {},
+): Promise<any> {
   try {
     const data: any[] = [];
     const photoSheets: Array<{ name: typeof SHEET_INPUT_FOTO_CANONICAL[number]; kategori: 'kebakaran' | 'odnk' }> = [
@@ -1207,7 +1210,21 @@ export async function getDetailFotoMarkers(fbRows?: any[]): Promise<any> {
       });
     }
 
-    return success(data);
+    const kategori = String(options.kategori || '').trim().toLowerCase();
+    const dateFrom = String(options.dateFrom || '').trim();
+    const dateTo = String(options.dateTo || '').trim();
+    const filtered = data.filter(item => {
+      if (kategori && String(item.kategori || '').toLowerCase() !== kategori) return false;
+      const date = String(item.tanggalFoto || '').slice(0, 10);
+      if (dateFrom && date && date < dateFrom) return false;
+      if (dateTo && date && date > dateTo) return false;
+      return true;
+    });
+    if (!options.kategori && !options.dateFrom && !options.dateTo && options.page == null && options.pageSize == null) return success(data);
+    const pageSize = Math.min(1000, Math.max(1, Number(options.pageSize) || 500));
+    const page = Math.max(1, Number(options.page) || 1);
+    const start = (page - 1) * pageSize;
+    return success({ items: filtered.slice(start, start + pageSize), total: filtered.length, page, pageSize, hasMore: start + pageSize < filtered.length });
   } catch (e: any) { return error(e.message); }
 }
 
