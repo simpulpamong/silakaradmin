@@ -1,4 +1,3 @@
-import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
 import fs from 'fs';
 import path from 'path';

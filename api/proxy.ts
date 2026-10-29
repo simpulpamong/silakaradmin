@@ -11,7 +11,6 @@ import {
   laporanIdentity,
   addLaporan,
   updateLaporan,
-  deleteLaporan,
   generateLaporanHtml,
   generateKolektifHtml,
   generateRekapPeriodeHtml,

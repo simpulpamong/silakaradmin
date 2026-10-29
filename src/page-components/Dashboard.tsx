@@ -5,7 +5,6 @@ import { Chart } from 'chart.js/auto';
 import { DashboardSkeleton } from '../components/SkeletonPages';
 import { apiGet } from '../services/api';
 import { KATEGORI_LIST } from '../utils/kategori';
-import { currentYearWIB } from '../utils/wib';
 
 interface DashboardData {
   total: number;

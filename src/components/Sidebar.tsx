@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, FileText, PlusCircle, Users, Map,
+  LayoutDashboard, FileText, Users, Map,
   Settings, LogOut,
   ChevronRight, ChevronLeft, BarChart3,
   Flame, Trash2
