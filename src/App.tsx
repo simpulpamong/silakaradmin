@@ -220,6 +220,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const memCacheRef = useRef<MemCache>({});
   // Ref untuk polling interval — hindari leak saat re-mount
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Deduplicate concurrent refreshes for the same key (navigation + prefetch/poll).
+  const refreshInFlightRef = useRef<Record<string, Promise<void> | undefined>>({});
 
   const [gallery, setGallery] = useState<GalleryState>({
     show: false,
@@ -362,6 +364,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const job = CACHE_JOBS[key];
     if (!job) return;
 
+    const inFlight = refreshInFlightRef.current[key];
+    if (inFlight) return inFlight;
+
+    const refresh = (async () => {
     // Check if the current in-memory cache is still fresh.
     // If it's less than 30 seconds old, we skip the network request to save database cost,
     // unless 'force' is true.
@@ -388,6 +394,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch {
       // Fail silently — stale data stays in memory
+    }
+    })();
+    refreshInFlightRef.current[key] = refresh;
+    try {
+      await refresh;
+    } finally {
+      if (refreshInFlightRef.current[key] === refresh) {
+        delete refreshInFlightRef.current[key];
+      }
     }
   }, [cacheSet]);
 
