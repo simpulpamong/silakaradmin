@@ -1,4 +1,3 @@
-import 'server-only';
 
 import dns from 'dns';
 try {
