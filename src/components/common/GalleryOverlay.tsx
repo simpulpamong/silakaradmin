@@ -27,7 +27,9 @@ export const GalleryOverlay: React.FC = () => {
   const [hasError, setHasError] = useState<boolean>(false);
 
   const activeFoto = gallery.fotos[gallery.index] || '';
-  const activeThumb = gallery.thumbs[gallery.index] || activeFoto;
+  // Normalise Drive URLs for the preview as well as the main image. Raw Drive
+  // sharing URLs often render an HTML response instead of an image.
+  const activeThumb = makeDriveThumbUrl(gallery.thumbs[gallery.index] || activeFoto);
 
   useEffect(() => {
     if (gallery.show && activeThumb) {
