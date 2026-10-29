@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import bcrypt from 'bcryptjs';
 import { uploadFoto, deleteFile } from './drive-service';
 import { getGoogleAuth, loadEnv } from './google-auth';
-import { REPORT_HEADERS, PHOTO_HEADERS } from './schema-contract';
+import { REPORT_HEADERS, PHOTO_HEADERS, headersMatch } from './schema-contract';
 
 // ================================================================
 //  CONSTANTS  (sama dengan GAS Code.gs)
@@ -1406,12 +1406,10 @@ function getSheetInitDefinitions() {
   ];
 }
 
-function sheetHeadersMatch(expected: string[], currentRow: any[]): boolean {
-  if (!currentRow || currentRow.length < expected.length) return false;
-  for (let i = 0; i < expected.length; i++) {
-    if (String(currentRow[i] || '').trim().toLowerCase() !== String(expected[i]).trim().toLowerCase()) return false;
-  }
-  return true;
+function sheetHeadersMatch(expected: readonly string[], currentRow: any[]): boolean {
+  // Compare the complete header row: trailing/extra columns are a schema mismatch,
+  // not something the admin should silently accept and then write against.
+  return headersMatch(expected, currentRow || []);
 }
 
 /**
