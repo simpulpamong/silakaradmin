@@ -1,5 +1,6 @@
 
 import dns from 'dns';
+import crypto from 'crypto';
 try {
   dns.setDefaultResultOrder('ipv4first');
 } catch {}
@@ -112,13 +113,44 @@ function clearLoginRateLimit(clientKey: string): void {
   loginRateLimiter.delete(clientKey);
 }
 
+const SESSION_COOKIE = 'silakaradmin_session';
+const SESSION_TTL_SECONDS = 60 * 60;
+function sessionSecret(): string {
+  return process.env.SESSION_SECRET || process.env.API_KEY || 'silakaradmin-development-secret';
+}
+function signSession(data: Record<string, any>): string {
+  const encoded = Buffer.from(JSON.stringify({ ...data, exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS })).toString('base64url');
+  const signature = crypto.createHmac('sha256', sessionSecret()).update(encoded).digest('base64url');
+  return `${encoded}.${signature}`;
+}
+function readCookies(req: IncomingMessage): Record<string, string> {
+  return Object.fromEntries(String(req.headers.cookie || '').split(';').map((part) => {
+    const i = part.indexOf('='); return i > 0 ? [part.slice(0, i).trim(), decodeURIComponent(part.slice(i + 1).trim())] : ['', ''];
+  }).filter(([key]) => key));
+}
+function readSession(req: IncomingMessage): Record<string, any> | null {
+  const value = readCookies(req)[SESSION_COOKIE];
+  if (!value) return null;
+  const [encoded, signature] = value.split('.');
+  if (!encoded || !signature) return null;
+  const expected = crypto.createHmac('sha256', sessionSecret()).update(encoded).digest('base64url');
+  if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
+  try { const data = JSON.parse(Buffer.from(encoded, 'base64url').toString()); return data.exp > Math.floor(Date.now() / 1000) ? data : null; } catch { return null; }
+}
+function setSessionCookie(res: NextApiResponse, value: string): void {
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${encodeURIComponent(value)}; Path=/; Max-Age=${SESSION_TTL_SECONDS}; HttpOnly; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`);
+}
+function clearSessionCookie(res: NextApiResponse): void {
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`);
+}
+
 // ================================================================
 //  HANDLER
 // ================================================================
 
 // Endpoint publik yang tidak memerlukan API key (read-only / non-destructive)
 const PUBLIC_ACTIONS = new Set([
-  'ping', 'login',
+  'ping', 'login', 'logout',
   // Hanya health check dan login boleh diakses tanpa autentikasi.
   // Semua data operasional, konfigurasi, foto, dan laporan wajib terlindungi.
   // Semua data operasional dan generator laporan wajib terlindungi.
@@ -152,12 +184,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!PUBLIC_ACTIONS.has(reqAction)) {
     const expectedKey = process.env.API_KEY || '';
-    if (!expectedKey) {
-      return res.status(503).json(error('Layanan admin belum dikonfigurasi.'));
-    }
     const apiKey = (req.headers as any)['x-api-key'] || '';
-    if (apiKey !== expectedKey) {
-      return res.status(401).json(error('Unauthorized: API key tidak valid.'));
+    const authenticatedBySession = !!readSession(req);
+    if ((!expectedKey || apiKey !== expectedKey) && !authenticatedBySession) {
+      return res.status(401).json(error('Unauthorized: sesi tidak valid atau telah berakhir.'));
     }
   }
 
@@ -235,6 +265,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const action = body.action || '';
 
       switch (action) {
+        case 'logout':
+          clearSessionCookie(res);
+          result = success(null, 'Logout berhasil.');
+          break;
         case 'login': {
           const clientIp =
             String((req.headers as any)['x-forwarded-for'] || (req.socket as any)?.remoteAddress || 'unknown')
@@ -275,6 +309,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           result = await checkLogin(username, password);
           if (result && result.success) {
             clearLoginRateLimit(rateKey);
+            setSessionCookie(res, signSession(result.data || {}));
           } else {
             recordFailedLoginAttempt(rateKey);
           }

@@ -582,6 +582,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; onClearCache: (
     if (confirmFirst) {
       setLogoutConfirmShow(true);
     } else {
+      void apiPost('logout');
       forceLogout();
     }
   }, [forceLogout]);
