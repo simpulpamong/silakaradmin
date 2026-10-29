@@ -79,7 +79,7 @@ export const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (lockoutSec > 0) return;
+    if (lockoutSec > 0 || isSubmitting) return;
 
     // 1. Sanitasi dan Validasi Input
     const cleanUsername = username.trim();
@@ -124,17 +124,22 @@ export const Login: React.FC = () => {
         clearLockoutState();
         setLockoutSec(0);
       }
-    } catch (err: any) {
-      setError(err?.message || 'Error koneksi ke server.');
+    } catch (err: unknown) {
+      // Jangan tampilkan pesan mentah dari backend (dapat berisi detail internal).
+      // Catat detail hanya di console agar pengguna mendapat arahan yang aman.
+      console.error('[auth] login request failed', err);
+      setError('Login gagal karena masalah koneksi atau server. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const isLocked = lockoutSec > 0;
+  const errorId = 'login-error';
+  const lockoutId = 'login-lockout';
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg p-5 transition-[background-color] duration-300 ease-[ease]">
+    <main className="relative flex min-h-screen items-center justify-center overflow-x-hidden overflow-y-auto bg-bg p-4 transition-[background-color] duration-300 ease-[ease] sm:p-5">
       {/* Grid background */}
       <span
         aria-hidden="true"
@@ -230,7 +235,7 @@ export const Login: React.FC = () => {
 
           {/* Banner Peringatan Lockout Brute Force */}
           {isLocked && (
-            <div className="mb-5 flex items-start gap-3 rounded-[12px] border border-amber-500/40 bg-amber-500/10 p-3.5 text-[.78rem]" role="alert">
+            <div id={lockoutId} className="mb-5 flex items-start gap-3 rounded-[12px] border border-amber-500/40 bg-amber-500/10 p-3.5 text-[.78rem]" role="alert" aria-live="polite">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
               <div>
                 <p className="font-bold text-amber-600 dark:text-amber-400">Akses Masuk Dikunci Sementara</p>
@@ -245,7 +250,7 @@ export const Login: React.FC = () => {
 
           {/* Pesan Kesalahan Biasa */}
           {!isLocked && error && (
-            <div className="mb-5 flex items-center gap-2 rounded-[10px] border border-l-4 border-[rgba(239,108,74,.3)] border-l-[#EF6C4A] bg-[#fff0ec] px-3.5 py-2.5 text-[.78rem] font-semibold text-[#b83a1a]" role="alert">
+            <div id={errorId} className="mb-5 flex items-center gap-2 rounded-[10px] border border-l-4 border-[rgba(239,108,74,.3)] border-l-[#EF6C4A] bg-[#fff0ec] px-3.5 py-2.5 text-[.78rem] font-semibold text-[#b83a1a]" role="alert" aria-live="assertive">
               <AlertCircle className="h-[15px] w-[15px] shrink-0 text-[#EF6C4A]" />
               <span>{error}</span>
             </div>
@@ -270,6 +275,10 @@ export const Login: React.FC = () => {
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   autoComplete="username"
+                   autoCapitalize="none"
+                   spellCheck={false}
+                   aria-invalid={Boolean(error) || undefined}
+                   aria-describedby={error ? errorId : undefined}
                   required
                 />
               </div>
@@ -293,6 +302,8 @@ export const Login: React.FC = () => {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   autoComplete="current-password"
+                   aria-invalid={Boolean(error) || undefined}
+                   aria-describedby={error ? errorId : isLocked ? lockoutId : undefined}
                   required
                 />
                 <button
