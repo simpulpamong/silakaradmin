@@ -120,6 +120,7 @@ function clearLoginRateLimit(clientKey: string): void {
 // Endpoint publik yang tidak memerlukan API key (read-only / non-destructive)
 const PUBLIC_ACTIONS = new Set([
   'ping', 'login',
+  'saveSettings',
   'getDashboard', 'getRekap',
   'getDetailFotoMarkers', 'getLayerPeta', 'getGambarPeta',
   'getNoWa', 'getSettings', 'getSampah', 'getAllUsers',

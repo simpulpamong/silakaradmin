@@ -17,7 +17,7 @@ function getApiProxyUrl(): string {
  */
 function getApiKey(): string {
   try {
-    const key = process.env.NEXT_PUBLIC_API_KEY || '';
+    const key = process.env.NEXT_PUBLIC_API_KEY || process.env.VITE_API_KEY || '';
     return key;
   } catch {
     return '';
