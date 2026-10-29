@@ -9,6 +9,10 @@ export const LoadingOverlay: React.FC = () => {
   return (
     <div
       id="lov"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label={loadingMessage || 'Memuat data'}
       className="on fixed inset-0 z-[99990] flex flex-col items-center justify-center gap-[13px] bg-[var(--lov-bg)] opacity-100 pointer-events-auto backdrop-blur-[8px] transition-opacity duration-200 print:hidden"
     >
       <div className="relative h-11 w-11">
