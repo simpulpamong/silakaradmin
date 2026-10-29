@@ -128,6 +128,18 @@ interface ParsedLaporan {
  * Parse teks laporan (sama dgn _parseLaporan di GAS)
  */
 function parseLaporan(teks: string): ParsedLaporan {
+  const clean = teks.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/[*_~`]/g, '').replace(/\r\n?/g, '\n').replace(/\s*•\s*/g, '\n');
+  const section = (labels: string[], stops: string[]): string => {
+    const label = labels.join('|');
+    const stop = stops.join('|');
+    const m = new RegExp(`(?:^|\\n)\\s*(?:${label})\\s*[:：]?\\s*([\\s\\S]*?)(?=\\n\\s*(?:${stop})\\b|$)`, 'im').exec(clean);
+    return m?.[1]?.replace(/\\s+/g, ' ').trim().replace(/[.]+$/, '').trim() || '';
+  };
+  const date = /HARI\\s*(?:DAN\\s+)?TANGGAL[^:：]*[:：]?\\s*[A-Za-zÀ-ÿ]+(?:['’][A-Za-zÀ-ÿ]+)?\\s*,?\\s*(\\d{1,2}\\s+[A-Za-zÀ-ÿ]+\\s+\\d{4})/i.exec(clean);
+  const day = /HARI\\s*(?:DAN\\s+)?TANGGAL[^:：]*[:：]?\\s*([A-Za-zÀ-ÿ]+(?:['’][A-Za-zÀ-ÿ]+)?)/i.exec(clean);
+  const stops = ['JARAK TEMPUH','ESTIMASI WAKTU','PEMBERI INFORMASI','PELAPOR','PEMILIK','JUMLAH PENGHUNI','KORBAN','PENYEBAB','KRONOLOGI','TINDAKAN','RINCIAN KEGIATAN','JUMLAH UNIT','KENDALA','PERSONIL','DOKUMENTASI','YANG MELAPORKAN'];
+  const normalizedDay = (day?.[1] || '').replace(/[’']/g, '').toLowerCase();
+  const days: Record<string, string> = { senin:'Senin', selasa:'Selasa', rabu:'Rabu', kamis:'Kamis', jumat:'Jumat', sabtu:'Sabtu', minggu:'Minggu' };
   function ambil(pattern: string, str: string): string {
     const r = new RegExp(pattern, 'is').exec(str);
     return r && r[1] ? r[1].trim() : '';
@@ -142,14 +154,14 @@ function parseLaporan(teks: string): ParsedLaporan {
     namaDanru = ambil('Danru\\s+(?:\\d+\\s*)?([A-Za-z\\s\\.]+)', teks);
   }
   return {
-    lokasi    : ambil('Patroli\\s*Damkar\\s*Damkar\\s*di\\s+(.*?)\\s+Sebagai', teks),
-    hari      : ambil('Hari\\s*:\\s*(.*?)\\s+Tanggal', teks),
-    tanggal   : ambil('Tanggal\\s*:\\s*(.*?)\\s+Identitas', teks),
-    identitas : ambil('Identitas\\s*\\/\\s*Nama\\s*Pelanggaran\\s*(.*?)\\s+Personil', teks),
-    personil  : ambil('Personil\\s*yang\\s*terlibat\\s*:\\s*\\((.*?)\\)\\s*(?:Pelaksanaan|Keterangan)', teks),
-    danru,
+    lokasi: section(['LOKASI', 'ALAMAT'], stops),
+    hari: days[normalizedDay] || (day?.[1] || '').replace(/[’']/g, ''),
+    tanggal: date?.[1] || '',
+    identitas: section(['OBJEK', 'PEMILIK', 'PELAPOR / PEMOHON'], stops),
+    personil: section(['PERSONIL(?:\\s+YANG\\s+TERLIBAT)?'], ['KENDALA','DOKUMENTASI','YANG MELAPORKAN','TEMBUSAN']),
+    danru: clean.match(/Regu\\s+([A-Z])\\s+Damkar/i)?.[1] ? `Regu ${clean.match(/Regu\\s+([A-Z])\\s+Damkar/i)?.[1]}` : danru,
     namaDanru,
-    keterangan: ambil('(?:Pelaksanaan|Keterangan)\\s*:\\s*(.*?)\\s*(?=Demikian)', teks)
+    keterangan: section(['KRONOLOGI','RINCIAN KEGIATAN'], ['TINDAKAN','JUMLAH UNIT','PERSONIL','KENDALA','DOKUMENTASI','DEMIKIAN','YANG MELAPORKAN'])
   };
 }
 
