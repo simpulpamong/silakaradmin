@@ -188,18 +188,9 @@ const CACHE_JOBS: Record<string, () => Promise<any>> = {
   rekap: () => apiGet('getRekap'),
   layerPeta: () => apiGet('getLayerPeta'),
   fotoMarker: () => apiGet('getDetailFotoMarkers'),
-  dashboard: async () => {
-    const [dashRes, rekapRes] = await Promise.all([
-      apiGet('getDashboard'),
-      apiGet('getRekap')
-    ]);
-    if (dashRes.success) {
-      const dashData = dashRes.data || dashRes;
-      dashData.allData = rekapRes.success ? (rekapRes.data?.rows || rekapRes.data || rekapRes) : [];
-      return dashData;
-    }
-    return null;
-  }
+  // Dashboard consumes server-side aggregates only. Full report rows stay in
+  // the dedicated `rekap` cache and are not duplicated in dashboard memory.
+  dashboard: () => apiGet('getDashboard')
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -368,12 +359,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (inFlight) return inFlight;
 
     const refresh = (async () => {
-    // Check if the current in-memory cache is still fresh.
-    // If it's less than 30 seconds old, we skip the network request to save database cost,
-    // unless 'force' is true.
+    // Align request suppression with the in-memory cache TTL. This prevents
+    // repeated page mounts from refetching large Sheet datasets every 30s.
     const item = memCacheRef.current[key];
-    if (!force && item && (Date.now() - item.ts < 30000)) {
-      return; // Skip database fetch, cache is fresh
+    if (!force && item && (Date.now() - item.ts < MEM_TTL)) {
+      return; // Skip database fetch while the cache is fresh
     }
 
     try {
