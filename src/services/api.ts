@@ -24,6 +24,41 @@ function getApiKey(): string {
   }
 }
 
+const API_TIMEOUT_MS = 15_000;
+
+function isRetryableStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
+}
+
+/** Fetch with a bounded timeout and one retry for idempotent GET requests. */
+async function fetchApi(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  retryable: boolean,
+): Promise<Response> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= (retryable ? 1 : 0); attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+    try {
+      const response = await fetch(input, { ...init, signal: controller.signal });
+      if (retryable && attempt === 0 && isRetryableStatus(response.status)) {
+        await response.body?.cancel();
+        continue;
+      }
+      return response;
+    } catch (error) {
+      lastError = error;
+      if (!retryable || attempt === 1) throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('API request failed');
+}
+
 async function parseFetchJson(res: Response): Promise<any> {
   const text = await res.text();
   try {
@@ -59,7 +94,7 @@ export async function apiGet(action: string, params: Record<string, any> = {}): 
     const apiKey = getApiKey();
     if (apiKey) headers['x-api-key'] = apiKey;
 
-    const res = await fetch(url, { headers });
+    const res = await fetchApi(url, { headers }, true);
     return await parseFetchJson(res);
   } catch (e: any) {
     console.error(`[API] apiGet("${action}") gagal:`, e);
@@ -73,11 +108,11 @@ export async function apiPost(action: string, payload: Record<string, any> = {})
     const apiKey = getApiKey();
     if (apiKey) headers['x-api-key'] = apiKey;
 
-    const res = await fetch(getApiProxyUrl(), {
+    const res = await fetchApi(getApiProxyUrl(), {
       method: 'POST',
       headers,
       body: JSON.stringify({ action, ...payload }),
-    });
+    }, false);
     return await parseFetchJson(res);
   } catch (e: any) {
     console.error(`[API] apiPost("${action}") gagal:`, e);
